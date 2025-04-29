@@ -1,0 +1,27 @@
+{
+    "name": "laceworkFortiCNAPPFortiCASBDSPMAlert",
+    "version": "1.0.0",
+    "fsrMinCompatibility": "1.0.0",
+    "type": "solutionpack",
+    "local": true,
+    "label": "Lacework FortiCNAPP FortiCASB DSPM Alert",
+    "dependencies": [],
+    "prerequisite": null,
+    "publisher": "Fortinet",
+    "description": "For each of the FortiCASB DSPM alerts of type AWSS3 all related buckets will be tagged with the category of the detection. These S3 tags can be used in Alert and Explorer within Lacework FortiCNAPP to alert on and visualize DSPM related risk.",
+    "help": null,
+    "category": [
+        "Analytics and SIEM"
+    ],
+    "supportInfo": null,
+    "iconLarge": "fsr-icon-large.png",
+    "postInstallConfig": null,
+    "date": "2025-04-15T22:09:03+00:00",
+    "contents": {
+        "playbooks": [
+            {
+                "name": "10 - SP - Lacework FortiCNAPP FortiCASB DSPM Alerts"
+            }
+        ]
+    }
+}

@@ -1,0 +1,619 @@
+{
+    "@context": "\/api\/3\/contexts\/Workflow",
+    "@type": "Workflow",
+    "triggerLimit": null,
+    "name": "FortiCASB Alert to AWS S3 Bucket Tag",
+    "aliasName": null,
+    "tag": null,
+    "description": null,
+    "isActive": true,
+    "debug": false,
+    "singleRecordExecution": false,
+    "remoteExecutableFlag": false,
+    "parameters": [],
+    "synchronous": false,
+    "collection": "\/api\/3\/workflow_collections\/63c80e79-c370-4d7e-bca1-6a050162fbc7",
+    "versions": [],
+    "triggerStep": "\/api\/3\/workflow_steps\/33e9b396-f262-4739-a6ff-0b5ccc576d83",
+    "steps": [
+        {
+            "@type": "WorkflowStep",
+            "name": "Build Bucket Tags",
+            "description": null,
+            "arguments": {
+                "bucket_tags": "{\n{%- for event in vars.steps.Rebuild_Event %}\n  \"{{ event.forticnapp_event.bucketName }}:{{ event.forticnapp_event.recipientAccountId }}:{{ loop.index0 }}\": {\n    \"TagSet\": {{ (vars.steps.Get_Bucket_Tags[loop.index0].data.TagSet\n                   + [ { \"Key\": \"FortiCASB_\" + (event.forticnapp_event.policyCategory | replace(' ','_')) , \"Value\": true } ]\n                  ) | to_json }}\n  }{{ \",\" if not loop.last }}\n{%- endfor %}\n}"
+            },
+            "status": null,
+            "top": "1400",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "b1a0de42-b997-4b1d-8ba9-99bac240fac6"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Check for Alerts and Activity",
+            "description": null,
+            "arguments": {
+                "conditions": [
+                    {
+                        "option": "activity found",
+                        "step_iri": "\/api\/3\/workflow_steps\/cd86dc59-6679-48d6-a028-e59fe0d538b9",
+                        "condition": "{{ vars.steps.Search_Activity.data.activities | length >= 1 }}",
+                        "step_name": "Merge Alerts and Activity"
+                    },
+                    {
+                        "option": "no activity",
+                        "default": true,
+                        "step_iri": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
+                        "step_name": "Update Last Time"
+                    }
+                ],
+                "step_variables": []
+            },
+            "status": null,
+            "top": "1020",
+            "left": "820",
+            "stepType": "\/api\/3\/workflow_step_types\/12254cf5-5db7-4b1a-8cb1-3af081924b28",
+            "group": null,
+            "uuid": "6315f336-a905-450d-bf92-e7644ba4294f"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "CLI Vars",
+            "description": null,
+            "arguments": {
+                "tagging": "TagSet=[{%- for tag in vars.merged_bucket_tags[vars.item][\"TagSet\"] -%}{Key={{ (tag.keys() | first) }},Value={{ tag[(tag.keys() | first)] }}}{%- if not loop.last -%},{%- endif -%}{%- endfor -%}]",
+                "for_each": {
+                    "item": "[{% for k in vars.merged_bucket_tags.keys() %}\"{{k}}\"{%- if not loop.last -%},{%- endif -%}{% endfor %}]",
+                    "parallel": false,
+                    "condition": ""
+                },
+                "bucketName": "{{ vars.merged_bucket_tags[vars.item].bucketName }}",
+                "recipientAccountId": "{{ vars.merged_bucket_tags[vars.item].recipientAccountId }}"
+            },
+            "status": null,
+            "top": "1720",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "c450edb6-8a4f-4ab5-b8d2-587ff406ceb0"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Datapatterns",
+            "description": null,
+            "arguments": {
+                "name": "Fortinet FortiCASB",
+                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
+                "params": [],
+                "version": "2.0.0",
+                "connector": "forticasb",
+                "operation": "get_datapatterns",
+                "operationTitle": "Get Data Patterns",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "380",
+            "left": "660",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "383d04cb-ba0d-4887-a954-13381627ac34"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Extract Results",
+            "description": null,
+            "arguments": {
+                "last_pull_time": "{% if (vars.steps.Get_Macro_Value.data[\"hydra:member\"] | length) < 1%}{{arrow.utcnow().shift(minutes=-vars.fetch_alerts_in_last_X_minutes).format('YYYY-MM-DDTHH:mm:ss.ssss')}}Z{% else %}{{vars.steps.Get_Macro_Value.data['hydra:member'][0]['value']}}{% endif %}",
+                "current_timestamp": "{{ \narrow.get(arrow.utcnow().int_timestamp).strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}"
+            },
+            "status": null,
+            "top": "380",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "f242c302-bea2-4225-9497-0bedeaa4debd"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Get Bucket Tags",
+            "description": null,
+            "arguments": {
+                "name": "AWS Commands",
+                "config": "{{ vars.item.forticnapp_event.recipientAccountId | string | trim }}",
+                "params": {
+                    "command": "s3api get-bucket-tagging",
+                    "optional_parameters": "--bucket {{ vars.item.forticnapp_event.bucketName }}"
+                },
+                "version": "1.0.0",
+                "for_each": {
+                    "item": "{{ vars.steps.Rebuild_Event }}",
+                    "parallel": false,
+                    "condition": ""
+                },
+                "connector": "aws-commands",
+                "operation": "generic_command",
+                "ignore_errors": true,
+                "operationTitle": "Execute AWS Command",
+                "pickFromTenant": false,
+                "step_variables": {
+                    "bucket_name": "{{ vars.item.forticnapp_event.bucketName }}"
+                }
+            },
+            "status": null,
+            "top": "1280",
+            "left": "660",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "715c1243-a196-402e-9e00-3762e823c3b8"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Get Macro Value",
+            "description": null,
+            "arguments": {
+                "params": {
+                    "iri": "\/api\/wf\/api\/dynamic-variable\/?name={{vars.pullTimeMacro}}",
+                    "body": "",
+                    "method": "GET"
+                },
+                "version": "3.5.0",
+                "connector": "cyops_utilities",
+                "operation": "make_cyops_request",
+                "operationTitle": "FSR: Make FortiSOAR API Call",
+                "step_variables": []
+            },
+            "status": null,
+            "top": "260",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/0109f35d-090b-4a2b-bd8a-94cbc3508562",
+            "group": null,
+            "uuid": "50a77027-12f4-40b5-a96a-e4a7cb069f77"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Make Activity List",
+            "description": null,
+            "arguments": {
+                "alerts_map": "{% set items={} -%}\n{% for i in vars.steps.Search_Alerts.data.alerts %}{% if items.update({ i[\"eventId\"] : i }) %}{% endif %}{% endfor -%}\n{{ items }}"
+            },
+            "status": null,
+            "top": "760",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "eca3b1d8-23a3-41d4-9f1c-3b03d6f71a3c"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Merge Alerts and Activity",
+            "description": null,
+            "arguments": {
+                "alert_details": "{% set items={} -%}\n{% for i in vars.steps.Search_Activity.data.activities %}{% if items.update({ i[\"eventIDLink\"] : { \"activity\": i, \"alert\": vars.alerts_map[i[\"eventIDLink\"]] }} ) %}{% endif %}{% endfor -%}\n{{ items }}"
+            },
+            "status": null,
+            "top": "1020",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "cd86dc59-6679-48d6-a028-e59fe0d538b9"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Merge Bucket Tags",
+            "description": null,
+            "arguments": {
+                "merged_bucket_tags": "{%- set merged = {} %}\n{%- set bucket_keys = [] %}\n{%- for full_key, data in vars.bucket_tags.items() %}\n    {%- set bucket_account = full_key.split(':')[:-1] %}\n    {%- set bucket = bucket_account[:-1] | join(\"\") %}\n    {%- set account = bucket_account[-1] | join(\"\") %}\n    {%- if bucket not in merged.keys() %}\n      {%- set x=merged.update({ bucket: { \"bucketName\": bucket, \"recipientAccountId\": account, \"TagSet\" : [] } }) %}\n    {%- endif %}\n    {%- for tag in data.TagSet %}\n      {%- if bucket + \"_\" + tag.Key not in bucket_keys %}\n        {%- if bucket_keys.append(bucket + \"_\" + tag.Key) %}{% endif %}\n        {%- set x=merged[bucket][\"TagSet\"].append({ tag.Key : tag.Value }) %}\n      {%- endif %}\n    {%- endfor %}\n{%- endfor %}\n{{ merged | to_json }}"
+            },
+            "status": null,
+            "top": "1560",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "2ea29f56-9a6d-4f90-8285-d407cb7f2172"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Policies",
+            "description": null,
+            "arguments": {
+                "name": "Fortinet FortiCASB",
+                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
+                "params": [],
+                "version": "1.0.0",
+                "connector": "forticasb",
+                "operation": "get_policies",
+                "operationTitle": "Get Policies",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "500",
+            "left": "660",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Rebuild Event",
+            "description": null,
+            "arguments": {
+                "for_each": {
+                    "item": "[ \"{{ vars.alert_details.keys() | join('\",\"') }}\"]",
+                    "parallel": false,
+                    "condition": ""
+                },
+                "forticnapp_event": "{%- set policy_code = vars.alert_details[vars.item].alert.policyName %}\n{%- set code_num = policy_code %}\n{%- set all_patterns = \t vars.steps.Policies.data.policies[0].data.datas[0].piiPatterns \n                         + vars.steps.Policies.data.policies[0].data.datas[0].finPatterns\n                         + vars.steps.Policies.data.policies[0].data.datas[0].malwarePatterns\n                         + vars.steps.Policies.data.policies[0].data.datas[0].customizedPatterns\n                      \n%}\n{%- set data_all_patterns = \t vars.steps.Datapatterns.data.datapatterns %}\n{%- set policyCategory = \n     (all_patterns\n        | selectattr('displayName','equalto',code_num)\n        | map(attribute='category')\n        | list\n        | first\n     )\n  or (data_all_patterns\n        | selectattr('name','equalto',code_num)\n        | map(attribute='dataPatternCategory')\n        | list\n        | first\n     )\n  or 'Unknown Category'\n-%}\n{\n  \"id\": \"{{ vars.alert_details[vars.item].alert.id }}\",\n  \"buid\": \"{{ vars.alert_details[vars.item].alert.buid }}\",\n  \"service\": \"{{ vars.alert_details[vars.item].alert.service }}\",\n  \"applicationId\": \"{{ vars.alert_details[vars.item].alert.applicationId }}\",\n  \"region\": \"{{ vars.alert_details[vars.item].alert.region }}\",\n  \"severity\": \"{{ vars.alert_details[vars.item].alert.severity }}\",\n  \"userName\": \"{{ vars.alert_details[vars.item].alert.userName }}\",\n  \"object\": \"{{ vars.alert_details[vars.item].alert.object }}\",\n  \"policyCode\": \"{{ vars.alert_details[vars.item].alert.policyCode }}\",\n  \"policyCategory\": \"{{ policyCategory }}\",\n  \"policyName\": \"{{ vars.alert_details[vars.item].alert.policyName }}\",\n  \"displayOperation\": \"{{ vars.alert_details[vars.item].alert.displayOperation }}\",\n  \"violationActivity\": \"{{ vars.alert_details[vars.item].alert.violationActivity }}\",\n  \"eventId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventId }}\",\n  \"awsRegion\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).awsRegion }}\",\n  \"eventName\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventName }}\",\n  \"eventTime\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventTime }}\",\n  \"requestID\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestID }}\",\n  \"eventSource\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventSource }}\",\n  \"userIdentityArn\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.arn }}\",\n  \"userIdentityType\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.type }}\",\n  \"userIdentityAccountId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.accountId }}\",\n  \"userIdentityPrincipalId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.principalId }}\",\n  \"sourceIPAddress\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).sourceIPAddress }}\",\n  \"recipientAccountId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).recipientAccountId }}\",\n  \"bucketName\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestParameters.bucketName }}\",\n  \"key\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestParameters.key }}\"\n}"
+            },
+            "status": null,
+            "top": "1160",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "5b2c9508-123b-42d5-956a-3e961042d24b"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Search Activity",
+            "description": null,
+            "arguments": {
+                "name": "Fortinet FortiCASB",
+                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
+                "params": {
+                    "idList": "{{ vars.alerts_map.keys() | join(\",\") }}",
+                    "ipList": "",
+                    "endTime": "{{ vars.current_timestamp }}",
+                    "service": "AWSS3",
+                    "activity": "",
+                    "cityList": "",
+                    "startTime": "{{ vars.last_pull_time }}",
+                    "objectname": ""
+                },
+                "version": "2.0.0",
+                "connector": "forticasb",
+                "operation": "search_activity",
+                "operationTitle": "Search Activity",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "880",
+            "left": "660",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "43646b07-0c0a-4cb8-8ab6-3d9ab9bad27f"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Search Alerts",
+            "description": null,
+            "arguments": {
+                "name": "Fortinet FortiCASB",
+                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
+                "params": {
+                    "user": "",
+                    "idlist": "",
+                    "policy": "",
+                    "status": "",
+                    "endTime": "{{ vars.current_timestamp }}",
+                    "service": "AWSS3",
+                    "activity": "",
+                    "severity": "",
+                    "alerttype": "",
+                    "startTime": "{{ vars.last_pull_time }}",
+                    "objectname": "",
+                    "countrylist": "",
+                    "objectidlist": "",
+                    "businessunitname": ""
+                },
+                "version": "2.0.0",
+                "connector": "forticasb",
+                "operation": "search_alerts",
+                "operationTitle": "Search Alerts",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "640",
+            "left": "660",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "5abf8b48-db28-4b59-9713-22daaab2d4d6"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Set Bucket Tags",
+            "description": null,
+            "arguments": {
+                "name": "AWS Commands",
+                "config": "{{ vars.merged_bucket_tags[vars.item].recipientAccountId }}",
+                "params": {
+                    "command": "s3api put-bucket-tagging",
+                    "optional_parameters": "--bucket {{ vars.merged_bucket_tags[vars.item].bucketName }} --tagging TagSet=[{%- for tag in vars.merged_bucket_tags[vars.item][\"TagSet\"] -%}{Key={{ (tag.keys() | first) }},Value={{ tag[(tag.keys() | first)] }}}{%- if not loop.last -%},{%- endif -%}{%- endfor -%}]"
+                },
+                "version": "1.0.0",
+                "for_each": {
+                    "item": "[{% for k in vars.merged_bucket_tags.keys() %}\"{{k}}\"{%- if not loop.last -%},{%- endif -%}{% endfor %}]",
+                    "parallel": false,
+                    "condition": ""
+                },
+                "connector": "aws-commands",
+                "operation": "generic_command",
+                "operationTitle": "Execute AWS Command",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "1860",
+            "left": "680",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "a19dc438-ec58-463d-8ff3-c7ed83ed0c11"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Start",
+            "description": null,
+            "arguments": {
+                "route": "fb5876a1-4a37-4d87-810e-d146740236f3",
+                "resources": [
+                    "alerts"
+                ],
+                "__triggerLimit": true,
+                "inputVariables": [],
+                "step_variables": {
+                    "input": {
+                        "params": [],
+                        "records": "{{vars.input.records}}"
+                    }
+                },
+                "triggerOnSource": true,
+                "executeButtonText": "Execute",
+                "noRecordExecution": true,
+                "showToasterMessage": {
+                    "visible": false,
+                    "messageVisible": true
+                },
+                "triggerOnReplicate": false,
+                "singleRecordExecution": false
+            },
+            "status": null,
+            "top": "40",
+            "left": "660",
+            "stepType": "\/api\/3\/workflow_step_types\/f414d039-bb0d-4e59-9c39-a8f1e880b18a",
+            "group": null,
+            "uuid": "33e9b396-f262-4739-a6ff-0b5ccc576d83"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Update Last Time",
+            "description": null,
+            "arguments": {
+                "params": {
+                    "macro": "{{vars.pullTimeMacro}}",
+                    "value": "{{vars.current_timestamp}}"
+                },
+                "version": "3.5.0",
+                "connector": "cyops_utilities",
+                "operation": "updatemacro",
+                "operationTitle": "FSR: Create\/Update Global Variables",
+                "step_variables": []
+            },
+            "status": null,
+            "top": "2020",
+            "left": "680",
+            "stepType": "\/api\/3\/workflow_step_types\/0109f35d-090b-4a2b-bd8a-94cbc3508562",
+            "group": null,
+            "uuid": "67733d16-3839-41dd-8b36-9aadb2d9e1a9"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Variables",
+            "description": null,
+            "arguments": {
+                "pullTimeMacro": "FortiCASBkLastPullTime_{{vars['audit_info']['cyops_playbook_iri'].split('\/')[-1].replace('-','_')}}",
+                "fetch_alerts_in_last_X_minutes": "1440"
+            },
+            "status": null,
+            "top": "140",
+            "left": "300",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "b3d1b847-f1db-48ee-a76c-e0fd7fbfbcd3"
+        }
+    ],
+    "routes": [
+        {
+            "@type": "WorkflowRoute",
+            "name": "Build Bucket Tags -> Merge Bucket Tags",
+            "targetStep": "\/api\/3\/workflow_steps\/2ea29f56-9a6d-4f90-8285-d407cb7f2172",
+            "sourceStep": "\/api\/3\/workflow_steps\/b1a0de42-b997-4b1d-8ba9-99bac240fac6",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "1a71959c-54a7-4d3d-a185-d231c8803e68"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Check for Alerts and Activity -> Merge Alerts and Activity",
+            "targetStep": "\/api\/3\/workflow_steps\/cd86dc59-6679-48d6-a028-e59fe0d538b9",
+            "sourceStep": "\/api\/3\/workflow_steps\/6315f336-a905-450d-bf92-e7644ba4294f",
+            "label": "activity found",
+            "isExecuted": false,
+            "group": null,
+            "uuid": "edb07d4b-12d2-4f47-92ad-94e5536b170b"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Check for Alerts and Activity -> Update Last Time",
+            "targetStep": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
+            "sourceStep": "\/api\/3\/workflow_steps\/6315f336-a905-450d-bf92-e7644ba4294f",
+            "label": "no activity",
+            "isExecuted": false,
+            "group": null,
+            "uuid": "e6735f85-aff5-4108-b4ed-977770f0bf47"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Datapatterns -> Policies",
+            "targetStep": "\/api\/3\/workflow_steps\/4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903",
+            "sourceStep": "\/api\/3\/workflow_steps\/383d04cb-ba0d-4887-a954-13381627ac34",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "15df0447-42af-4cca-9a98-80e03ac85237"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Extract Results -> Datapatterns",
+            "targetStep": "\/api\/3\/workflow_steps\/383d04cb-ba0d-4887-a954-13381627ac34",
+            "sourceStep": "\/api\/3\/workflow_steps\/f242c302-bea2-4225-9497-0bedeaa4debd",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "605ce6de-526e-4f7d-920d-d14a90c8057f"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Get Bucket Tags -> 2",
+            "targetStep": "\/api\/3\/workflow_steps\/b1a0de42-b997-4b1d-8ba9-99bac240fac6",
+            "sourceStep": "\/api\/3\/workflow_steps\/715c1243-a196-402e-9e00-3762e823c3b8",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "bcd23e1f-9dfa-4e22-9917-8e900c9ab3b4"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Get Macro Value -> Extract Results",
+            "targetStep": "\/api\/3\/workflow_steps\/f242c302-bea2-4225-9497-0bedeaa4debd",
+            "sourceStep": "\/api\/3\/workflow_steps\/50a77027-12f4-40b5-a96a-e4a7cb069f77",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "837fe012-72f5-4613-823b-7ac0ffdf65d3"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Make Activity List -> Search Activity",
+            "targetStep": "\/api\/3\/workflow_steps\/43646b07-0c0a-4cb8-8ab6-3d9ab9bad27f",
+            "sourceStep": "\/api\/3\/workflow_steps\/eca3b1d8-23a3-41d4-9f1c-3b03d6f71a3c",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "d6909917-0085-4d64-8972-8976c37e3a73"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Merge Alerts and Activity -> Raw Data",
+            "targetStep": "\/api\/3\/workflow_steps\/5b2c9508-123b-42d5-956a-3e961042d24b",
+            "sourceStep": "\/api\/3\/workflow_steps\/cd86dc59-6679-48d6-a028-e59fe0d538b9",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "47cc53a4-dbbc-4776-9b8d-305c782c6d16"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Merge Bucket Tags -> tt",
+            "targetStep": "\/api\/3\/workflow_steps\/c450edb6-8a4f-4ab5-b8d2-587ff406ceb0",
+            "sourceStep": "\/api\/3\/workflow_steps\/2ea29f56-9a6d-4f90-8285-d407cb7f2172",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "11c6c576-a115-45bb-b48c-ccf77dd919f3"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Policies -> Search Alerts",
+            "targetStep": "\/api\/3\/workflow_steps\/5abf8b48-db28-4b59-9713-22daaab2d4d6",
+            "sourceStep": "\/api\/3\/workflow_steps\/4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "ddf4591c-ba59-4445-8ca6-663f1f7b8cea"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Rebuild Event -> Get Bucket Tags",
+            "targetStep": "\/api\/3\/workflow_steps\/715c1243-a196-402e-9e00-3762e823c3b8",
+            "sourceStep": "\/api\/3\/workflow_steps\/5b2c9508-123b-42d5-956a-3e961042d24b",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "82b2a2fb-585b-4737-947b-3426cdc37ef6"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Search Activity -> Check for Alerts and Activity",
+            "targetStep": "\/api\/3\/workflow_steps\/6315f336-a905-450d-bf92-e7644ba4294f",
+            "sourceStep": "\/api\/3\/workflow_steps\/43646b07-0c0a-4cb8-8ab6-3d9ab9bad27f",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "df37674c-e982-43a9-a507-b717b8a72b62"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Search Alerts -> List",
+            "targetStep": "\/api\/3\/workflow_steps\/eca3b1d8-23a3-41d4-9f1c-3b03d6f71a3c",
+            "sourceStep": "\/api\/3\/workflow_steps\/5abf8b48-db28-4b59-9713-22daaab2d4d6",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "228d6f24-5174-4ff3-9f4d-d518b6aff330"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Set Bucket Tags -> Update Last Time",
+            "targetStep": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
+            "sourceStep": "\/api\/3\/workflow_steps\/a19dc438-ec58-463d-8ff3-c7ed83ed0c11",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "eb9b711f-4c2e-4a24-a892-2a2f688ab63f"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Start -> Variables",
+            "targetStep": "\/api\/3\/workflow_steps\/b3d1b847-f1db-48ee-a76c-e0fd7fbfbcd3",
+            "sourceStep": "\/api\/3\/workflow_steps\/33e9b396-f262-4739-a6ff-0b5ccc576d83",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "fbfadcff-6b53-4b8c-b16b-42cbdbc28a2a"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "tt -> Set Bucket Tags",
+            "targetStep": "\/api\/3\/workflow_steps\/a19dc438-ec58-463d-8ff3-c7ed83ed0c11",
+            "sourceStep": "\/api\/3\/workflow_steps\/c450edb6-8a4f-4ab5-b8d2-587ff406ceb0",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "bd5bae5e-f7cf-42ad-b9be-8c8ee67cf950"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Variables -> Get Macro Value",
+            "targetStep": "\/api\/3\/workflow_steps\/50a77027-12f4-40b5-a96a-e4a7cb069f77",
+            "sourceStep": "\/api\/3\/workflow_steps\/b3d1b847-f1db-48ee-a76c-e0fd7fbfbcd3",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "85687f0f-63b4-450b-a673-c7d79b56e191"
+        }
+    ],
+    "groups": [],
+    "priority": "\/api\/3\/picklists\/2b563c61-ae2c-41c0-a85a-c9709585e3f2",
+    "playbookOrigin": "\/api\/3\/picklists\/b6d710a9-a8ec-41ec-8817-fe9fa062fcdd",
+    "isEditable": false,
+    "uuid": "abfb16e8-cf8f-4023-b598-cab01a58d89e",
+    "owners": [],
+    "isPrivate": false,
+    "deletedAt": null,
+    "recordTags": []
+}
