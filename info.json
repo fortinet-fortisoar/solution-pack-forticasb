@@ -18,6 +18,20 @@
     "postInstallConfig": null,
     "date": "2025-04-15T22:09:03+00:00",
     "contents": {
+        "connectors": [
+            {
+                "name": "AWS Commands",
+                "apiName": "aws-commands"
+            },
+            {
+                "name": "AWS EC2",
+                "apiName": "aws"
+            },
+            {
+                "name": "FortiCASB",
+                "apiName": "forticasb"
+            }
+        ],
         "playbooks": [
             {
                 "name": "10 - SP - Lacework FortiCNAPP FortiCASB DSPM Alerts"
