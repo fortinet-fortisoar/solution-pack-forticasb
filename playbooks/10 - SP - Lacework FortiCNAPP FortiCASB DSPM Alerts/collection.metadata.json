@@ -1,0 +1,11 @@
+{
+    "@context": "\/api\/3\/contexts\/WorkflowCollection",
+    "@type": "WorkflowCollection",
+    "name": "10 - SP - Lacework FortiCNAPP FortiCASB DSPM Alerts",
+    "description": null,
+    "visible": true,
+    "image": null,
+    "uuid": "63c80e79-c370-4d7e-bca1-6a050162fbc7",
+    "deletedAt": null,
+    "recordTags": []
+}
