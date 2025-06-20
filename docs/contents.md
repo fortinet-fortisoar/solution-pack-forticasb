@@ -1,9 +1,9 @@
 | [Home](../README.md) |
  | -------------------------------------------- |
 
-  # Contents
+# Contents
 
-The **Lacework FortiCNAPP FortiCASB DSPM Alerts ** solution pack contains the following resources.
+The **Lacework FortiCNAPP FortiCASB DSPM Alerts** solution pack contains the following resources.
 
 ## Connector
 
