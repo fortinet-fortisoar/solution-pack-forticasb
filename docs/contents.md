@@ -20,7 +20,7 @@ The **Lacework FortiCNAPP FortiCASB DSPM Alerts** solution pack contains the fol
 
 | Playbook Name | Description |
 | :- | :- |
-| Lacework FortiCNAPP > FortiCASB Alert to AWS S3 Bucket Tag.json | Pulls FortiCASB Alerts and Tags AWS S3 buckets with respective DSPM alert category |
+| Lacework FortiCNAPP > FortiCASB Alert to AWS S3 Bucket Tag | Pulls FortiCASB Alerts and Tags AWS S3 buckets with respective DSPM alert category |
 
 >**Warning:** We recommend that you clone these playbooks before customizing to avoid loss of information while upgrading the solution pack.
 
