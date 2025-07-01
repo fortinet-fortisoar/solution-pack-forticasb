@@ -1,5 +1,5 @@
-[Home](../README.md) |
-|--------------------------------------------|
+| [Home](../README.md) |
+| -------------------- |
 
 # Installation
 
@@ -10,9 +10,9 @@
 
 ## Prerequisites
 The **Lacework FortiCNAPP FortiCASB DSPM Alerts** solution pack depends on the following solution packs that are installed automatically &ndash; if not already installed.
-| Solution Pack Name | Version | Purpose |
-| :--------------------- | :---------------------| :--------------------------------------- |
-| SOAR Framework | v2.0.0 and later | Required for Incident Response modules                   |
+| Solution Pack Name | Version          | Purpose                                |
+| :----------------- | :--------------- | :------------------------------------- |
+| SOAR Framework     | v2.0.0 and later | Required for Incident Response modules |
 
 
 
@@ -45,4 +45,4 @@ For optimal performance of **Lacework FortiCNAPP FortiCASB DSPM Alerts** solutio
 
 # Next Steps
 | [Usage](./usage.md) | [Contents](./contents.md) |
-|---------------------|---------------------------|
+| ------------------- | ------------------------- |
