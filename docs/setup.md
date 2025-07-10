@@ -1,5 +1,5 @@
-| [Home](../README.md) |
-| -------------------- |
+[Home](../README.md) |
+|--------------------------------------------|
 
 # Installation
 
@@ -10,16 +10,23 @@
 
 ## Prerequisites
 The **Lacework FortiCNAPP FortiCASB DSPM Alerts** solution pack depends on the following solution packs that are installed automatically &ndash; if not already installed.
-| Solution Pack Name | Version          | Purpose                                |
-| :----------------- | :--------------- | :------------------------------------- |
-| SOAR Framework     | v2.0.0 and later | Required for Incident Response modules |
+| Solution Pack Name | Version | Purpose |
+| :--------------------- | :---------------------| :--------------------------------------- |
+| SOAR Framework | v2.0.0 and later | Required for Incident Response modules                   |
 
 
 
 # Configuration
+
+> [!Important]
+> Before first-use, open the solution pack and modify the `Variables` step. Update the `fortirecon_config` value specifying your FortiRecon connector configuration name, replacing `<YOUR CONNECTOR CONFIG NAME HERE>`.
+
 For optimal performance of **Lacework FortiCNAPP FortiCASB DSPM Alerts** solution pack, you can install and configure the connectors that help with the following:
 
-* **AWS Commands** - Amazon Elastic Compute Cloud (Amazon EC2) provides scalable computing capacity in the Amazon Web Services (AWS) cloud. You can use Amazon EC2 to launch as many or as few virtual servers as you need, configure security and networking, and manage storage.. To configure and use the AWS Commands connector, refer to [Configuring AWS Commands](https://docs.fortinet.com/fortisoar/connectors/aws-commands)
+* **AWS Commands** - Amazon Elastic Compute Cloud (Amazon EC2) provides scalable computing capacity in the Amazon Web Services (AWS) cloud. You can use Amazon EC2 to launch as many or as few virtual servers as you need, configure security and networking, and manage storage.. To configure and use the AWS Commands connector, refer to [Configuring AWS Commands](https://docs.fortinet.com/fortisoar/connectors/aws-commands).
+
+    **Note:** This solution pack expects the **configuration name to match the AWS Account ID** (e.g. `123456789012`). This is because during the parsing of alerts the account id is dynamically extracted and then used to take the tagging action on the identified assets.
+
     * **Permissions**: `s3:GetBucketTagging`, `s3:PutBucketTagging`, `s3:DeleteBucketTagging`  
     * IAM role example:
         ```json   
@@ -45,4 +52,4 @@ For optimal performance of **Lacework FortiCNAPP FortiCASB DSPM Alerts** solutio
 
 # Next Steps
 | [Usage](./usage.md) | [Contents](./contents.md) |
-| ------------------- | ------------------------- |
+|---------------------|---------------------------|
