@@ -1,11 +1,10 @@
 {
-    "@context": "\/api\/3\/contexts\/Workflow",
     "@type": "Workflow",
     "triggerLimit": null,
     "name": "FortiCASB Alert to AWS S3 Bucket Tag",
     "aliasName": null,
     "tag": null,
-    "description": null,
+    "description": "Pulls FortiCASB Alerts and Tags AWS S3 buckets with respective DSPM alert category",
     "isActive": true,
     "debug": false,
     "singleRecordExecution": false,
@@ -24,8 +23,8 @@
                 "bucket_tags": "{\n{%- for event in vars.steps.Rebuild_Event %}\n  \"{{ event.forticnapp_event.bucketName }}:{{ event.forticnapp_event.recipientAccountId }}:{{ loop.index0 }}\": {\n    \"TagSet\": {{ (vars.steps.Get_Bucket_Tags[loop.index0].data.TagSet\n                   + [ { \"Key\": \"FortiCASB_\" + (event.forticnapp_event.policyCategory | replace(' ','_')) , \"Value\": true } ]\n                  ) | to_json }}\n  }{{ \",\" if not loop.last }}\n{%- endfor %}\n}"
             },
             "status": null,
-            "top": "1400",
-            "left": "300",
+            "top": "1920",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "b1a0de42-b997-4b1d-8ba9-99bac240fac6"
@@ -37,13 +36,13 @@
             "arguments": {
                 "conditions": [
                     {
-                        "option": "activity found",
+                        "option": "Activity Found",
                         "step_iri": "\/api\/3\/workflow_steps\/cd86dc59-6679-48d6-a028-e59fe0d538b9",
                         "condition": "{{ vars.steps.Search_Activity.data.activities | length >= 1 }}",
                         "step_name": "Merge Alerts and Activity"
                     },
                     {
-                        "option": "no activity",
+                        "option": "No Activity Found",
                         "default": true,
                         "step_iri": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
                         "step_name": "Update Last Time"
@@ -52,15 +51,15 @@
                 "step_variables": []
             },
             "status": null,
-            "top": "1020",
-            "left": "820",
+            "top": "1380",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/12254cf5-5db7-4b1a-8cb1-3af081924b28",
             "group": null,
             "uuid": "6315f336-a905-450d-bf92-e7644ba4294f"
         },
         {
             "@type": "WorkflowStep",
-            "name": "CLI Vars",
+            "name": "CLI Variables",
             "description": null,
             "arguments": {
                 "tagging": "TagSet=[{%- for tag in vars.merged_bucket_tags[vars.item][\"TagSet\"] -%}{Key={{ (tag.keys() | first) }},Value={{ tag[(tag.keys() | first)] }}}{%- if not loop.last -%},{%- endif -%}{%- endfor -%}]",
@@ -73,45 +72,61 @@
                 "recipientAccountId": "{{ vars.merged_bucket_tags[vars.item].recipientAccountId }}"
             },
             "status": null,
-            "top": "1720",
-            "left": "300",
+            "top": "2180",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "c450edb6-8a4f-4ab5-b8d2-587ff406ceb0"
         },
         {
             "@type": "WorkflowStep",
-            "name": "Datapatterns",
+            "name": "Configuration",
             "description": null,
             "arguments": {
-                "name": "Fortinet FortiCASB",
-                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
-                "params": [],
-                "version": "1.0.0",
-                "connector": "fortinet-forticasb",
-                "operation": "get_datapatterns",
-                "operationTitle": "Get Data Patterns",
-                "pickFromTenant": false,
+                "pullTimeMacro": "FortiCASBkLastPullTime_{{vars['audit_info']['cyops_playbook_iri'].split('\/')[-1].replace('-','_')}}",
+                "fetch_alerts_in_last_X_minutes": "1440"
+            },
+            "status": null,
+            "top": "165",
+            "left": "125",
+            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
+            "group": null,
+            "uuid": "b3d1b847-f1db-48ee-a76c-e0fd7fbfbcd3"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Create Time Macro",
+            "description": null,
+            "arguments": {
+                "when": "{{vars.steps.Get_Time_Macro_Value.data['hydra:member'] | length == 0}}",
+                "params": {
+                    "macro": "{{vars.pullTimeMacro}}",
+                    "value": "{{arrow.utcnow().shift(minutes=-vars.fetch_alerts_in_last_X_minutes).format('YYYY-MM-DDTHH:mm:ss.ssss')}}Z"
+                },
+                "version": "3.5.0",
+                "connector": "cyops_utilities",
+                "operation": "updatemacro",
+                "operationTitle": "FSR: Create\/Update Global Variables",
                 "step_variables": []
             },
             "status": null,
-            "top": "380",
-            "left": "660",
-            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "top": "435",
+            "left": "125",
+            "stepType": "\/api\/3\/workflow_step_types\/0109f35d-090b-4a2b-bd8a-94cbc3508562",
             "group": null,
-            "uuid": "383d04cb-ba0d-4887-a954-13381627ac34"
+            "uuid": "06ffc0a9-2341-4922-9b30-be850aff4022"
         },
         {
             "@type": "WorkflowStep",
             "name": "Extract Results",
             "description": null,
             "arguments": {
-                "last_pull_time": "{% if (vars.steps.Get_Macro_Value.data[\"hydra:member\"] | length) < 1%}{{arrow.utcnow().shift(minutes=-vars.fetch_alerts_in_last_X_minutes).format('YYYY-MM-DDTHH:mm:ss.ssss')}}Z{% else %}{{vars.steps.Get_Macro_Value.data['hydra:member'][0]['value']}}{% endif %}",
+                "last_pull_time": "{% if (vars.steps.Get_Time_Macro_Value.data[\"hydra:member\"] | length) < 1%}{{arrow.utcnow().shift(minutes=-vars.fetch_alerts_in_last_X_minutes).format('YYYY-MM-DDTHH:mm:ss.ssss')}}Z{% else %}{{vars.steps.Get_Time_Macro_Value.data['hydra:member'][0]['value']}}{% endif %}",
                 "current_timestamp": "{{ \narrow.get(arrow.utcnow().int_timestamp).strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}"
             },
             "status": null,
-            "top": "380",
-            "left": "300",
+            "top": "570",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "f242c302-bea2-4225-9497-0bedeaa4debd"
@@ -143,15 +158,59 @@
                 }
             },
             "status": null,
-            "top": "1280",
-            "left": "660",
+            "top": "1780",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
             "group": null,
             "uuid": "715c1243-a196-402e-9e00-3762e823c3b8"
         },
         {
             "@type": "WorkflowStep",
-            "name": "Get Macro Value",
+            "name": "Get Data Patterns",
+            "description": null,
+            "arguments": {
+                "name": "Fortinet FortiCASB",
+                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
+                "params": [],
+                "version": "1.0.0",
+                "connector": "fortinet-forticasb",
+                "operation": "get_datapatterns",
+                "operationTitle": "Get Data Patterns",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "705",
+            "left": "125",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "383d04cb-ba0d-4887-a954-13381627ac34"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Get Policies",
+            "description": null,
+            "arguments": {
+                "name": "Fortinet FortiCASB",
+                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
+                "params": [],
+                "version": "1.0.0",
+                "connector": "fortinet-forticasb",
+                "operation": "get_policies",
+                "operationTitle": "Get Policies",
+                "pickFromTenant": false,
+                "step_variables": []
+            },
+            "status": null,
+            "top": "840",
+            "left": "125",
+            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
+            "group": null,
+            "uuid": "4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903"
+        },
+        {
+            "@type": "WorkflowStep",
+            "name": "Get Time Macro Value",
             "description": null,
             "arguments": {
                 "params": {
@@ -166,8 +225,8 @@
                 "step_variables": []
             },
             "status": null,
-            "top": "260",
-            "left": "300",
+            "top": "300",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/0109f35d-090b-4a2b-bd8a-94cbc3508562",
             "group": null,
             "uuid": "50a77027-12f4-40b5-a96a-e4a7cb069f77"
@@ -180,8 +239,8 @@
                 "alerts_map": "{% set items={} -%}\n{% for i in vars.steps.Search_Alerts.data.alerts %}{% if items.update({ i[\"eventId\"] : i }) %}{% endif %}{% endfor -%}\n{{ items }}"
             },
             "status": null,
-            "top": "760",
-            "left": "300",
+            "top": "1110",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "eca3b1d8-23a3-41d4-9f1c-3b03d6f71a3c"
@@ -194,8 +253,8 @@
                 "alert_details": "{% set items={} -%}\n{% for i in vars.steps.Search_Activity.data.activities %}{% if items.update({ i[\"eventIDLink\"] : { \"activity\": i, \"alert\": vars.alerts_map[i[\"eventIDLink\"]] }} ) %}{% endif %}{% endfor -%}\n{{ items }}"
             },
             "status": null,
-            "top": "1020",
-            "left": "300",
+            "top": "1520",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "cd86dc59-6679-48d6-a028-e59fe0d538b9"
@@ -208,33 +267,11 @@
                 "merged_bucket_tags": "{%- set merged = {} %}\n{%- set bucket_keys = [] %}\n{%- for full_key, data in vars.bucket_tags.items() %}\n    {%- set bucket_account = full_key.split(':')[:-1] %}\n    {%- set bucket = bucket_account[:-1] | join(\"\") %}\n    {%- set account = bucket_account[-1] | join(\"\") %}\n    {%- if bucket not in merged.keys() %}\n      {%- set x=merged.update({ bucket: { \"bucketName\": bucket, \"recipientAccountId\": account, \"TagSet\" : [] } }) %}\n    {%- endif %}\n    {%- for tag in data.TagSet %}\n      {%- if bucket + \"_\" + tag.Key not in bucket_keys %}\n        {%- if bucket_keys.append(bucket + \"_\" + tag.Key) %}{% endif %}\n        {%- set x=merged[bucket][\"TagSet\"].append({ tag.Key : tag.Value }) %}\n      {%- endif %}\n    {%- endfor %}\n{%- endfor %}\n{{ merged | to_json }}"
             },
             "status": null,
-            "top": "1560",
-            "left": "300",
+            "top": "2040",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "2ea29f56-9a6d-4f90-8285-d407cb7f2172"
-        },
-        {
-            "@type": "WorkflowStep",
-            "name": "Policies",
-            "description": null,
-            "arguments": {
-                "name": "Fortinet FortiCASB",
-                "config": "e7a4768d-29bd-4aea-a7c9-b8b4a2d1e18f",
-                "params": [],
-                "version": "1.0.0",
-                "connector": "fortinet-forticasb",
-                "operation": "get_policies",
-                "operationTitle": "Get Policies",
-                "pickFromTenant": false,
-                "step_variables": []
-            },
-            "status": null,
-            "top": "500",
-            "left": "660",
-            "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
-            "group": null,
-            "uuid": "4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903"
         },
         {
             "@type": "WorkflowStep",
@@ -246,11 +283,11 @@
                     "parallel": false,
                     "condition": ""
                 },
-                "forticnapp_event": "{%- set policy_code = vars.alert_details[vars.item].alert.policyName %}\n{%- set code_num = policy_code %}\n{%- set all_patterns = \t vars.steps.Policies.data.policies[0].data.datas[0].piiPatterns \n                         + vars.steps.Policies.data.policies[0].data.datas[0].finPatterns\n                         + vars.steps.Policies.data.policies[0].data.datas[0].malwarePatterns\n                         + vars.steps.Policies.data.policies[0].data.datas[0].customizedPatterns\n                      \n%}\n{%- set data_all_patterns = \t vars.steps.Datapatterns.data.datapatterns %}\n{%- set policyCategory = \n     (all_patterns\n        | selectattr('displayName','equalto',code_num)\n        | map(attribute='category')\n        | list\n        | first\n     )\n  or (data_all_patterns\n        | selectattr('name','equalto',code_num)\n        | map(attribute='dataPatternCategory')\n        | list\n        | first\n     )\n  or 'Unknown Category'\n-%}\n{\n  \"id\": \"{{ vars.alert_details[vars.item].alert.id }}\",\n  \"buid\": \"{{ vars.alert_details[vars.item].alert.buid }}\",\n  \"service\": \"{{ vars.alert_details[vars.item].alert.service }}\",\n  \"applicationId\": \"{{ vars.alert_details[vars.item].alert.applicationId }}\",\n  \"region\": \"{{ vars.alert_details[vars.item].alert.region }}\",\n  \"severity\": \"{{ vars.alert_details[vars.item].alert.severity }}\",\n  \"userName\": \"{{ vars.alert_details[vars.item].alert.userName }}\",\n  \"object\": \"{{ vars.alert_details[vars.item].alert.object }}\",\n  \"policyCode\": \"{{ vars.alert_details[vars.item].alert.policyCode }}\",\n  \"policyCategory\": \"{{ policyCategory }}\",\n  \"policyName\": \"{{ vars.alert_details[vars.item].alert.policyName }}\",\n  \"displayOperation\": \"{{ vars.alert_details[vars.item].alert.displayOperation }}\",\n  \"violationActivity\": \"{{ vars.alert_details[vars.item].alert.violationActivity }}\",\n  \"eventId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventId }}\",\n  \"awsRegion\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).awsRegion }}\",\n  \"eventName\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventName }}\",\n  \"eventTime\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventTime }}\",\n  \"requestID\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestID }}\",\n  \"eventSource\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventSource }}\",\n  \"userIdentityArn\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.arn }}\",\n  \"userIdentityType\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.type }}\",\n  \"userIdentityAccountId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.accountId }}\",\n  \"userIdentityPrincipalId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.principalId }}\",\n  \"sourceIPAddress\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).sourceIPAddress }}\",\n  \"recipientAccountId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).recipientAccountId }}\",\n  \"bucketName\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestParameters.bucketName }}\",\n  \"key\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestParameters.key }}\"\n}"
+                "forticnapp_event": "{%- set policy_code = vars.alert_details[vars.item].alert.policyName %}\n{%- set code_num = policy_code %}\n{%- set all_patterns = \t vars.steps.Get_Policies.data.policies[0].data.datas[0].piiPatterns \n                         + vars.steps.Get_Policies.data.policies[0].data.datas[0].finPatterns\n                         + vars.steps.Get_Policies.data.policies[0].data.datas[0].malwarePatterns\n                         + vars.steps.Get_Policies.data.policies[0].data.datas[0].customizedPatterns\n                      \n%}\n{%- set data_all_patterns = \t vars.steps.Get_Data_Patterns.data.datapatterns %}\n{%- set policyCategory = \n     (all_patterns\n        | selectattr('displayName','equalto',code_num)\n        | map(attribute='category')\n        | list\n        | first\n     )\n  or (data_all_patterns\n        | selectattr('name','equalto',code_num)\n        | map(attribute='dataPatternCategory')\n        | list\n        | first\n     )\n  or 'Unknown Category'\n-%}\n{\n  \"id\": \"{{ vars.alert_details[vars.item].alert.id }}\",\n  \"buid\": \"{{ vars.alert_details[vars.item].alert.buid }}\",\n  \"service\": \"{{ vars.alert_details[vars.item].alert.service }}\",\n  \"applicationId\": \"{{ vars.alert_details[vars.item].alert.applicationId }}\",\n  \"region\": \"{{ vars.alert_details[vars.item].alert.region }}\",\n  \"severity\": \"{{ vars.alert_details[vars.item].alert.severity }}\",\n  \"userName\": \"{{ vars.alert_details[vars.item].alert.userName }}\",\n  \"object\": \"{{ vars.alert_details[vars.item].alert.object }}\",\n  \"policyCode\": \"{{ vars.alert_details[vars.item].alert.policyCode }}\",\n  \"policyCategory\": \"{{ policyCategory }}\",\n  \"policyName\": \"{{ vars.alert_details[vars.item].alert.policyName }}\",\n  \"displayOperation\": \"{{ vars.alert_details[vars.item].alert.displayOperation }}\",\n  \"violationActivity\": \"{{ vars.alert_details[vars.item].alert.violationActivity }}\",\n  \"eventId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventId }}\",\n  \"awsRegion\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).awsRegion }}\",\n  \"eventName\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventName }}\",\n  \"eventTime\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventTime }}\",\n  \"requestID\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestID }}\",\n  \"eventSource\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).eventSource }}\",\n  \"userIdentityArn\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.arn }}\",\n  \"userIdentityType\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.type }}\",\n  \"userIdentityAccountId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.accountId }}\",\n  \"userIdentityPrincipalId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).userIdentity.principalId }}\",\n  \"sourceIPAddress\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).sourceIPAddress }}\",\n  \"recipientAccountId\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).recipientAccountId }}\",\n  \"bucketName\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestParameters.bucketName }}\",\n  \"key\": \"{{ (vars.alert_details[vars.item].activity.rawData | from_json).requestParameters.key }}\"\n}"
             },
             "status": null,
-            "top": "1160",
-            "left": "300",
+            "top": "1640",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
             "group": null,
             "uuid": "5b2c9508-123b-42d5-956a-3e961042d24b"
@@ -280,8 +317,8 @@
                 "step_variables": []
             },
             "status": null,
-            "top": "880",
-            "left": "660",
+            "top": "1245",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
             "group": null,
             "uuid": "43646b07-0c0a-4cb8-8ab6-3d9ab9bad27f"
@@ -317,8 +354,8 @@
                 "step_variables": []
             },
             "status": null,
-            "top": "640",
-            "left": "660",
+            "top": "975",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
             "group": null,
             "uuid": "5abf8b48-db28-4b59-9713-22daaab2d4d6"
@@ -347,8 +384,8 @@
                 "step_variables": []
             },
             "status": null,
-            "top": "1860",
-            "left": "680",
+            "top": "2320",
+            "left": "420",
             "stepType": "\/api\/3\/workflow_step_types\/0bfed618-0316-11e7-93ae-92361f002671",
             "group": null,
             "uuid": "a19dc438-ec58-463d-8ff3-c7ed83ed0c11"
@@ -381,8 +418,8 @@
                 "singleRecordExecution": false
             },
             "status": null,
-            "top": "40",
-            "left": "660",
+            "top": "30",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/f414d039-bb0d-4e59-9c39-a8f1e880b18a",
             "group": null,
             "uuid": "33e9b396-f262-4739-a6ff-0b5ccc576d83"
@@ -403,26 +440,11 @@
                 "step_variables": []
             },
             "status": null,
-            "top": "2020",
-            "left": "680",
+            "top": "2460",
+            "left": "125",
             "stepType": "\/api\/3\/workflow_step_types\/0109f35d-090b-4a2b-bd8a-94cbc3508562",
             "group": null,
             "uuid": "67733d16-3839-41dd-8b36-9aadb2d9e1a9"
-        },
-        {
-            "@type": "WorkflowStep",
-            "name": "Variables",
-            "description": null,
-            "arguments": {
-                "pullTimeMacro": "FortiCASBkLastPullTime_{{vars['audit_info']['cyops_playbook_iri'].split('\/')[-1].replace('-','_')}}",
-                "fetch_alerts_in_last_X_minutes": "1440"
-            },
-            "status": null,
-            "top": "140",
-            "left": "300",
-            "stepType": "\/api\/3\/workflow_step_types\/04d0cf46-b6a8-42c4-8683-60a7eaa69e8f",
-            "group": null,
-            "uuid": "b3d1b847-f1db-48ee-a76c-e0fd7fbfbcd3"
         }
     ],
     "routes": [
@@ -441,7 +463,7 @@
             "name": "Check for Alerts and Activity -> Merge Alerts and Activity",
             "targetStep": "\/api\/3\/workflow_steps\/cd86dc59-6679-48d6-a028-e59fe0d538b9",
             "sourceStep": "\/api\/3\/workflow_steps\/6315f336-a905-450d-bf92-e7644ba4294f",
-            "label": "activity found",
+            "label": "Activity Found",
             "isExecuted": false,
             "group": null,
             "uuid": "edb07d4b-12d2-4f47-92ad-94e5536b170b"
@@ -451,20 +473,20 @@
             "name": "Check for Alerts and Activity -> Update Last Time",
             "targetStep": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
             "sourceStep": "\/api\/3\/workflow_steps\/6315f336-a905-450d-bf92-e7644ba4294f",
-            "label": "no activity",
+            "label": "No Activity Found",
             "isExecuted": false,
             "group": null,
             "uuid": "e6735f85-aff5-4108-b4ed-977770f0bf47"
         },
         {
             "@type": "WorkflowRoute",
-            "name": "Datapatterns -> Policies",
-            "targetStep": "\/api\/3\/workflow_steps\/4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903",
-            "sourceStep": "\/api\/3\/workflow_steps\/383d04cb-ba0d-4887-a954-13381627ac34",
+            "name": "Create Time Macro -> Extract Results",
+            "targetStep": "\/api\/3\/workflow_steps\/f242c302-bea2-4225-9497-0bedeaa4debd",
+            "sourceStep": "\/api\/3\/workflow_steps\/06ffc0a9-2341-4922-9b30-be850aff4022",
             "label": null,
             "isExecuted": false,
             "group": null,
-            "uuid": "15df0447-42af-4cca-9a98-80e03ac85237"
+            "uuid": "e861daa5-912c-400e-a11e-2e518d644789"
         },
         {
             "@type": "WorkflowRoute",
@@ -488,13 +510,23 @@
         },
         {
             "@type": "WorkflowRoute",
-            "name": "Get Macro Value -> Extract Results",
-            "targetStep": "\/api\/3\/workflow_steps\/f242c302-bea2-4225-9497-0bedeaa4debd",
+            "name": "Get Data Patterns -> Policies",
+            "targetStep": "\/api\/3\/workflow_steps\/4cab35ad-40cf-4ac0-b9ab-a8b0e7baa903",
+            "sourceStep": "\/api\/3\/workflow_steps\/383d04cb-ba0d-4887-a954-13381627ac34",
+            "label": null,
+            "isExecuted": false,
+            "group": null,
+            "uuid": "620b553a-db55-4ba9-9b0b-8091809d5af5"
+        },
+        {
+            "@type": "WorkflowRoute",
+            "name": "Get Time Macro Value -> Create Time Macro",
+            "targetStep": "\/api\/3\/workflow_steps\/06ffc0a9-2341-4922-9b30-be850aff4022",
             "sourceStep": "\/api\/3\/workflow_steps\/50a77027-12f4-40b5-a96a-e4a7cb069f77",
             "label": null,
             "isExecuted": false,
             "group": null,
-            "uuid": "837fe012-72f5-4613-823b-7ac0ffdf65d3"
+            "uuid": "45043526-b012-4365-a647-ce906fb9be4d"
         },
         {
             "@type": "WorkflowRoute",
@@ -534,7 +566,7 @@
             "label": null,
             "isExecuted": false,
             "group": null,
-            "uuid": "ddf4591c-ba59-4445-8ca6-663f1f7b8cea"
+            "uuid": "ab47aa44-45f4-4f18-95d9-d3aa2ef54ef6"
         },
         {
             "@type": "WorkflowRoute",
@@ -554,17 +586,17 @@
             "label": null,
             "isExecuted": false,
             "group": null,
-            "uuid": "df37674c-e982-43a9-a507-b717b8a72b62"
+            "uuid": "9668366f-47e1-4298-9e1f-2dec4e1bbbb6"
         },
         {
             "@type": "WorkflowRoute",
-            "name": "Search Alerts -> List",
+            "name": "Search Alerts -> Make Activity List",
             "targetStep": "\/api\/3\/workflow_steps\/eca3b1d8-23a3-41d4-9f1c-3b03d6f71a3c",
             "sourceStep": "\/api\/3\/workflow_steps\/5abf8b48-db28-4b59-9713-22daaab2d4d6",
             "label": null,
             "isExecuted": false,
             "group": null,
-            "uuid": "228d6f24-5174-4ff3-9f4d-d518b6aff330"
+            "uuid": "563baf72-1edb-47f2-9cbb-22dc492ed859"
         },
         {
             "@type": "WorkflowRoute",
@@ -615,5 +647,7 @@
     "owners": [],
     "isPrivate": false,
     "deletedAt": null,
-    "recordTags": []
+    "recordTags": [
+        "ManualTrigger"
+    ]
 }
