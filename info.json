@@ -32,10 +32,6 @@
                 "apiName": "aws-commands"
             },
             {
-                "name": "AWS EC2",
-                "apiName": "aws"
-            },
-            {
                 "name": "Fortinet FortiCASB",
                 "apiName": "fortinet-forticasb"
             }

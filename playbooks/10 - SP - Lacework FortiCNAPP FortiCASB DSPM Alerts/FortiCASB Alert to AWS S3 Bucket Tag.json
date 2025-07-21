@@ -45,7 +45,7 @@
                         "option": "No Activity Found",
                         "default": true,
                         "step_iri": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
-                        "step_name": "Update Last Time"
+                        "step_name": "Update Last Pull Time"
                     }
                 ],
                 "step_variables": []
@@ -426,7 +426,7 @@
         },
         {
             "@type": "WorkflowStep",
-            "name": "Update Last Time",
+            "name": "Update Last Pull Time",
             "description": null,
             "arguments": {
                 "params": {
@@ -470,7 +470,7 @@
         },
         {
             "@type": "WorkflowRoute",
-            "name": "Check for Alerts and Activity -> Update Last Time",
+            "name": "Check for Alerts and Activity -> Update Last Pull Time",
             "targetStep": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
             "sourceStep": "\/api\/3\/workflow_steps\/6315f336-a905-450d-bf92-e7644ba4294f",
             "label": "No Activity Found",
@@ -600,7 +600,7 @@
         },
         {
             "@type": "WorkflowRoute",
-            "name": "Set Bucket Tags -> Update Last Time",
+            "name": "Set Bucket Tags -> Update Last Pull Time",
             "targetStep": "\/api\/3\/workflow_steps\/67733d16-3839-41dd-8b36-9aadb2d9e1a9",
             "sourceStep": "\/api\/3\/workflow_steps\/a19dc438-ec58-463d-8ff3-c7ed83ed0c11",
             "label": null,
