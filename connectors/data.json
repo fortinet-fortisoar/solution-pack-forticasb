@@ -1,0 +1,28 @@
+[
+    {
+        "name": "aws-commands",
+        "label": "AWS Commands",
+        "category": [
+            "IT Services"
+        ],
+        "description": "AWS Commands are used to run AWS native commands for AWS resources configurations directly from FortiSOAR.",
+        "publisher": "Fortinet",
+        "operation_roles": [],
+        "configurations": [],
+        "dataImports": [],
+        "install_mode": "rpm"
+    },
+    {
+        "name": "fortinet-forticasb",
+        "label": "Fortinet FortiCASB",
+        "category": [
+            "Investigation"
+        ],
+        "description": "FortiCASB Top Cloud Access Security Broker designed to provide visibility, compliance, data security, and threat protection for cloud-based services being used by an organization",
+        "publisher": "Community",
+        "operation_roles": [],
+        "configurations": [],
+        "dataImports": [],
+        "install_mode": "rpm"
+    }
+]
